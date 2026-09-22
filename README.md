@@ -105,6 +105,9 @@ uci commit dlna-player
   手机 App ──DLNA──▶ upmpdcli ──MPD协议──▶ MPD ──ALSA──▶ 声卡 ──▶ 🎵
 ```
 
+<img width="2191" height="1249" alt="image" src="https://github.com/user-attachments/assets/a1da170e-ccb9-431b-a01e-f13b0502f0a3" />
+
+
 ## 🔧 兼容性
 
 | OpenWrt 版本 | 状态 |

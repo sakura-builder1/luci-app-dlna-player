@@ -27,8 +27,6 @@
 
 ## 📦 安装
 
-### 方式一：编译成 ipk（推荐）
-
 在 OpenWrt 源码根目录执行：
 
 ```bash
@@ -67,75 +65,9 @@ opkg install /tmp/luci-app-dlna-player_*.ipk
 /etc/init.d/rpcd restart          # 重要！否则菜单不显示
 ```
 
-### 方式二：集成进固件
+> 💡 依赖会自动带上（mpd-full / upmpdcli / alsa-utils / 常见声卡驱动），不用手动选。
 
-```bash
-make menuconfig
-```
-
-进入：
-
-```
-LuCI
-  └── Applications
-        └── <M> luci-app-dlna-player
-```
-
-> 💡 勾选后依赖会自动带上（mpd-full / upmpdcli / alsa-utils / 常见声卡驱动），不用手动选。
-
-然后正常编译固件即可：
-
-```bash
-make -j$(nproc)
-```
-
-## 🎯 使用方法
-
-### 1. 打开 LuCI 配置
-
-```
-服务 → DLNA 音乐播放器
-```
-
-1. 勾选「**启用音频服务**」
-2. 设置「**音乐目录**」（默认 `/srv/music`）
-3. 点击「**保存并应用**」
-
-### 2. 放音乐到音乐目录
-
-```bash
-mkdir -p /srv/music
-cp your-music.mp3 /srv/music/
-```
-
-（也可以指向挂载点，如 `/mnt/sda1/music`）
-
-### 3. 检查声卡是否被正确识别
-
-```bash
-logread | grep dlna-player
-# 应看到：auto-detected sound card: hw:3,0
-```
-
-### 4. 播放
-
-- **网页上**：在「本地音乐库」里点「播放」按钮
-- **命令行**：
-
-```bash
-mpc update       # 扫描音乐库
-mpc add /        # 添加全部
-mpc play         # 播放
-mpc volume 40    # 设置音量
-```
-
-### 5. 手机 DLNA 投送
-
-```
-手机音乐 App → 投屏/DLNA → 选择你的设备名 🎵
-```
-
-设备名默认是主机名，也可以在配置里自定义。
+安装后在 **服务 → DLNA 音乐播放器** 里配置使用。
 
 ## ⚙️ 配置项
 
@@ -180,11 +112,6 @@ uci commit dlna-player
 | 24.10 | ✅ 已测试 |
 | 23.05 | ⚠️ 理论可用，未测试 |
 | 25.12 | ⚠️ 需要适配 `apk` |
-
-## 🤖 关于本插件
-
-本插件的**全部代码由 AI 编写**（包括 LuCI 前端、init 脚本、依赖声明、中文翻译与本文档），
-人类负责提出需求、在真机上测试并提供反馈。
 
 ## 📄 License
 

@@ -1,16 +1,20 @@
 # luci-app-dlna-player
 
-> 让 OpenWrt 设备（尤其是 x86 小主机）的**声卡开箱即用** —— 自动探测声卡、配置 MPD 播放、并支持手机 DLNA 投送。
+> 把 OpenWrt 设备（尤其是 x86 小主机）变成一台 **DLNA 音乐播放器** —— 自动探测声卡、配置 MPD 播放、支持手机投送。
 
-[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
 
 ## ✨ 特性
 
 - 🔍 **声卡自动探测** —— 无需手动找 `hw:X,Y`，自动识别模拟输出设备
 - 🔊 **自动解除静音** —— ALSA 新装默认静音，脚本自动处理
-- 🎵 **MPD 自动配置** —— 一键生成可用的 `mpd.conf`
+- 🎵 **MPD 自动配置** —— 自动生成可用的 `mpd.conf`
 - 📡 **DLNA 投送** —— 手机（网易云 / QQ音乐 / BubbleUPnP）直接投送
+- 🎚️ **实时音量 / 进度滑块** —— 网页上直接拖动调节
+- 🔍 **音乐库搜索** —— 歌曲多了也能快速找到
+- 🔁 **播放模式** —— 循环 / 随机 / 顺序播放
 - 💾 **持久化音量** —— 绕过 tmpfs，重启后音量不丢
+- 🌏 **中文界面** —— 内置翻译，开箱即用
 - 🔄 **完整开机自启** —— 服务顺序自动编排
 
 ## 📋 适用场景
@@ -21,41 +25,100 @@
 
 ## 📦 安装
 
-### 方式一：加入源码编译
+### 方式一：编译成 ipk（推荐）
+
+在 OpenWrt 源码根目录执行：
 
 ```bash
-cd openwrt/package/custom
-git clone https://github.com/<你的用户名>/luci-app-dlna-player.git
-cd ../..
-make menuconfig   # LuCI → Applications → luci-app-dlna-player
+# 1. 进入 package 目录，克隆插件
+cd package
+git clone https://github.com/sakura-builder1/luci-app-dlna-player.git
+
+# 2. 回到源码根目录
+cd ..
+
+# 3. 更新一下 feeds（首次编译需要）
+./scripts/feeds update -a && ./scripts/feeds install -a
+
+# 4. 只编译这个插件
+make package/luci-app-dlna-player/compile V=s
+```
+
+编译产物在：
+
+```
+bin/packages/<架构>/base/luci-app-dlna-player_*.ipk
+```
+
+例如 x86_64：
+
+```
+bin/packages/x86_64/base/luci-app-dlna-player_1.0.0-r5_all.ipk
+```
+
+把它拷到路由器上安装：
+
+```bash
+scp bin/packages/x86_64/base/luci-app-dlna-player_*.ipk root@192.168.1.1:/tmp/
+ssh root@192.168.1.1
+opkg install /tmp/luci-app-dlna-player_*.ipk
+/etc/init.d/rpcd restart          # 重要！否则菜单不显示
+```
+
+### 方式二：集成进固件
+
+```bash
+make menuconfig
+```
+
+进入：
+
+```
+LuCI
+  └── Applications
+        └── <M> luci-app-dlna-player
+```
+
+> 💡 勾选后依赖会自动带上（mpd-full / upmpdcli / alsa-utils / 常见声卡驱动），不用手动选。
+
+然后正常编译固件即可：
+
+```bash
 make -j$(nproc)
 ```
 
-### 方式二：直接装 ipk
-
-```bash
-opkg install luci-app-dlna-player_1.0.0-r1_all.ipk
-```
-
-依赖会自动安装：`mpd-full` `mpc` `upmpdcli` `alsa-utils`
-
 ## 🎯 使用方法
 
-### 1. 放音乐到音乐目录
+### 1. 打开 LuCI 配置
+
+```
+服务 → DLNA 音乐播放器
+```
+
+1. 勾选「**启用音频服务**」
+2. 设置「**音乐目录**」（默认 `/srv/music`）
+3. 点击「**保存并应用**」
+
+### 2. 放音乐到音乐目录
 
 ```bash
 mkdir -p /srv/music
 cp your-music.mp3 /srv/music/
 ```
 
-### 2. 检查声卡是否被正确识别
+（也可以指向挂载点，如 `/mnt/sda1/music`）
+
+### 3. 检查声卡是否被正确识别
 
 ```bash
 logread | grep dlna-player
 # 应看到：auto-detected sound card: hw:3,0
 ```
 
-### 3. 播放（命令行）
+### 4. 播放
+
+- **网页上**：在「本地音乐库」里点「播放」按钮
+- **命令行**：
 
 ```bash
 mpc update       # 扫描音乐库
@@ -64,11 +127,13 @@ mpc play         # 播放
 mpc volume 40    # 设置音量
 ```
 
-### 4. 手机 DLNA 投送
+### 5. 手机 DLNA 投送
 
 ```
-手机音乐 App → 投屏/DLNA → 选择「小主机音箱」🎵
+手机音乐 App → 投屏/DLNA → 选择你的设备名 🎵
 ```
+
+设备名默认是主机名，也可以在配置里自定义。
 
 ## ⚙️ 配置项
 
@@ -76,7 +141,7 @@ mpc volume 40    # 设置音量
 
 ```uci
 config audio 'main'
-	option enabled '1'              # 是否启用
+	option enabled '0'              # 是否启用（默认关闭）
 	option device ''                # 声卡设备，留空=自动探测（如 hw:3,0）
 	option music_dir '/srv/music'   # 音乐目录
 	option volume '40'              # 默认音量 0-100
@@ -91,35 +156,20 @@ config audio 'main'
 uci set dlna-player.main.volume='60'
 uci commit dlna-player
 /etc/init.d/dlna-player start
-/etc/init.d/upmpdcli restart
 ```
 
 ## 🏗️ 工作原理
 
 ```
 启动流程：
-  S50 dlna-player   → 探测声卡 + 修权限 + 解静音 + 生成 mpd.conf + 建目录
-  S93 mpd           → 启动 MPD（以 root 运行）
-  S94 dlna-player-volume  → 设置默认音量（有持久状态则跳过）
-  S95 upmpdcli      → 启动 DLNA 服务
+  S50 dlna-player          → 探测声卡 + 修权限 + 解静音 + 生成 mpd.conf + 建目录
+  S93 mpd                  → 启动 MPD（以 root 运行）
+  S94 dlna-player-volume   → 设置默认音量（有持久状态则跳过）
+  S95 upmpdcli             → 启动 DLNA 服务
 
 播放链路：
   手机 App ──DLNA──▶ upmpdcli ──MPD协议──▶ MPD ──ALSA──▶ 声卡 ──▶ 🎵
 ```
-
-## ⚠️ 踩过的坑（为什么要这么写）
-
-OpenWrt 上做音频输出有一堆隐藏问题，这个包都处理了：
-
-| 坑 | 现象 | 解决 |
-|---|---|---|
-| **`/root` 权限** | MPD 起不来 | 音乐放 `/srv/music` |
-| **ALSA 默认静音** | 播放无声 | 自动 `amixer ... unmute` |
-| **`/dev` 是 tmpfs** | 重启后权限丢失 | 每次开机 `chmod 666` |
-| **`/var` 是 tmpfs** | 重启后目录/状态丢失 | 状态文件放 `/etc` |
-| **PulseAudio 抢权限** | 权限被重置 | MPD 以 root 运行 |
-| **busybox 无 `seq`** | 脚本报错 | 用 `while` 循环 |
-| **启动顺序** | 声卡没好就启 MPD | 用 `START=50/93/94/95` 编排 |
 
 ## 🔧 兼容性
 
@@ -131,4 +181,7 @@ OpenWrt 上做音频输出有一堆隐藏问题，这个包都处理了：
 
 ## 📄 License
 
-Apache-2.0
+GPL-3.0
+
+本项目采用 **GNU General Public License v3.0** 授权 —— 你可以自由使用、修改、分发，
+但**衍生作品必须同样以 GPL-3.0 开源**，不能闭源独吞。
